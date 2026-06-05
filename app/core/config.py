@@ -14,7 +14,8 @@ load_dotenv(Path(".env"))
 class Settings:
     """应用配置"""
     openai_api_key: str = ""
-    openai_model: str = "gpt-4o"
+    openai_model: str = "deepseek-chat"
+    openai_base_url: str = "https://api.deepseek.com"
     render_width: int = 800
     render_height: int = 600
     output_dir: str = "./output"
@@ -26,7 +27,8 @@ class Settings:
             env = os.environ
         return cls(
             openai_api_key=env.get("OPENAI_API_KEY", ""),
-            openai_model=env.get("OPENAI_MODEL", "gpt-4o"),
+            openai_model=env.get("OPENAI_MODEL", "deepseek-chat"),
+            openai_base_url=env.get("OPENAI_BASE_URL", "https://api.deepseek.com"),
             render_width=int(env.get("RENDER_WIDTH", "800")),
             render_height=int(env.get("RENDER_HEIGHT", "600")),
             output_dir=env.get("OUTPUT_DIR", "./output"),

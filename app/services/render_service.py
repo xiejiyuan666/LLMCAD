@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import io
 import logging
 import os
 import tempfile
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import trimesh
 from cadquery import exporters
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from app.core.domain import CADModel, RenderedImage
 
@@ -15,7 +20,7 @@ logger = logging.getLogger("llm_cad")
 
 
 class TrimeshRenderer:
-    """基于Trimesh的3D渲染器"""
+    """基于matplotlib的3D渲染器（软件渲染，无需OpenGL）"""
 
     def render(self, model: CADModel, width: int = 800, height: int = 600) -> RenderedImage:
         """渲染CAD模型为图片"""
@@ -29,19 +34,40 @@ class TrimeshRenderer:
             # 导出为STL临时文件
             exporters.export(model.workplane.val(), tmp_path)
 
-            # 使用trimesh加载和渲染
+            # 使用trimesh加载
             mesh = trimesh.load_mesh(tmp_path)
-            scene = trimesh.Scene(mesh)
 
-            # 设置相机
-            scale = mesh.scale if mesh.scale > 0 else 100
-            scene.set_camera(
-                angles=(np.pi / 6, np.pi / 4, 0),
-                distance=scale * 4
-            )
+            # 使用matplotlib渲染
+            fig = plt.figure(figsize=(width / 100, height / 100), dpi=100)
+            ax = fig.add_subplot(111, projection="3d")
+            ax.set_facecolor("white")
+            fig.patch.set_facecolor("white")
 
-            # 渲染图片
-            png_bytes = scene.save_image(resolution=(width, height))
+            # 绘制mesh面
+            vertices = mesh.vertices
+            faces = mesh.faces
+            poly = Poly3DCollection(vertices[faces], alpha=0.9, linewidths=0.1)
+            poly.set_facecolor((0.3, 0.5, 0.9))
+            poly.set_edgecolor((0.2, 0.2, 0.2))
+            ax.add_collection3d(poly)
+
+            # 自动设置坐标轴范围
+            bounds = mesh.bounds
+            center = bounds.mean(axis=0)
+            extent = np.ptp(bounds, axis=0).max() / 2
+            ax.set_xlim(center[0] - extent, center[0] + extent)
+            ax.set_ylim(center[1] - extent, center[1] + extent)
+            ax.set_zlim(center[2] - extent, center[2] + extent)
+
+            ax.set_box_aspect((1, 1, 1))
+            ax.view_init(elev=25, azim=-60)
+            ax.axis("off")
+
+            # 保存到内存
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png", bbox_inches="tight", pad_inches=0, dpi=100)
+            plt.close(fig)
+            png_bytes = buf.getvalue()
 
             # 保存到输出目录
             Path("output").mkdir(exist_ok=True)

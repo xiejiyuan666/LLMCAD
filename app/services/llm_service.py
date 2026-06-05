@@ -25,6 +25,7 @@ class LLMCodeGenerator:
 3. 代码完整，包含import语句
 4. 使用合理的默认参数值（单位：毫米）
 5. 使用标准数学函数 math.sin, math.cos, math.radians
+6. 合并多个实体时使用 .union() 方法，不要使用 .add()
 
 示例 - 带腿的圆桌：
 ```python
@@ -39,24 +40,21 @@ leg_diameter = 6
 leg_offset = 25
 
 # 桌面
-tabletop = cq.Workplane("XY").circle(table_diameter/2).extrude(table_thickness)
+result = cq.Workplane("XY").circle(table_diameter/2).extrude(table_thickness)
 
 # 四条桌腿
-legs = cq.Workplane("XY")
 for angle in [0, 90, 180, 270]:
     rad = math.radians(angle)
     x = leg_offset * math.cos(rad)
     y = leg_offset * math.sin(rad)
     leg = cq.Workplane("XY", origin=(x, y, -leg_height)).circle(leg_diameter/2).extrude(leg_height)
-    legs = legs.add(leg)
-
-result = tabletop.add(legs)
+    result = result.union(leg)
 ```
 
 输出必须是有效的Python代码，直接返回代码，不要解释。"""
 
     def __init__(self) -> None:
-        self._client = OpenAI(api_key=settings.openai_api_key) if settings.has_api_key else None
+        self._client = OpenAI(api_key=settings.openai_api_key, base_url=settings.openai_base_url) if settings.has_api_key else None
 
     def generate(self, request: CADRequest) -> CADCode:
         """生成CAD代码"""
@@ -107,18 +105,15 @@ leg_diameter = 6
 leg_offset = 25
 
 # 桌面
-tabletop = cq.Workplane("XY").circle(table_diameter/2).extrude(table_thickness)
+result = cq.Workplane("XY").circle(table_diameter/2).extrude(table_thickness)
 
 # 四条桌腿
-legs = cq.Workplane("XY")
 for angle in [0, 90, 180, 270]:
     rad = math.radians(angle)
     x = leg_offset * math.cos(rad)
     y = leg_offset * math.sin(rad)
     leg = cq.Workplane("XY", origin=(x, y, -leg_height)).circle(leg_diameter/2).extrude(leg_height)
-    legs = legs.add(leg)
-
-result = tabletop.add(legs)
+    result = result.union(leg)
 '''
 
 
@@ -138,17 +133,14 @@ leg_diameter = 6
 leg_offset = 25
 
 # 桌面
-tabletop = cq.Workplane("XY").circle(table_diameter/2).extrude(table_thickness)
+result = cq.Workplane("XY").circle(table_diameter/2).extrude(table_thickness)
 
 # 四条桌腿
-legs = cq.Workplane("XY")
 for angle in [0, 90, 180, 270]:
     rad = math.radians(angle)
     x = leg_offset * math.cos(rad)
     y = leg_offset * math.sin(rad)
     leg = cq.Workplane("XY", origin=(x, y, -leg_height)).circle(leg_diameter/2).extrude(leg_height)
-    legs = legs.add(leg)
-
-result = tabletop.add(legs)
+    result = result.union(leg)
 '''
         return CADCode(code=code)
